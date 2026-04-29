@@ -26,7 +26,7 @@ export function Navbar(): React.ReactElement {
   ];
 
   return (
-    <nav className="p-6 pb-0">
+    <nav className="absolute p-6 pb-0 w-full z-9">
       <div className="bg-secondary flex flex-row justify-between border rounded-4xl p-4">
         <div className="flex flex-row items-center gap-x-4">
           {list.map((item, index) => (

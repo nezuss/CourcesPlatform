@@ -10,8 +10,8 @@ interface CourceProps {
   price: number;
 }
 
-export default function Home() {
-  const cources: CourceProps[] = [
+export default function Profile() {
+  const groups: CourceProps[] = [
     {
       id: "def456",
       groupId: "group3",
@@ -70,11 +70,12 @@ export default function Home() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="bg-secondary border rounded-4xl p-8">
+      <div className="h-52 bg-secondary border p-4">
         <div className="flex flex-row items-center gap-x-4">
-          <Avatar className="size-24">
+          <Avatar className="size-44">
             <AvatarFallback>T</AvatarFallback>
             <AvatarImage
+              className="rounded-sm"
               src={
                 "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRdItruwGc0DLpI66Now8jewf1dOVtZUBeajA&s"
               }
@@ -87,17 +88,17 @@ export default function Home() {
         </div>
       </div>
       <div className="space-y-2">
-        <h1 className="font-semibold text-3xl">List of Cources</h1>
+        <h1 className="font-semibold text-3xl">List of Groups</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {cources.map((cource, index) => (
+          {groups.map((group, index) => (
             <div
-              key={index + "-crs-" + cource.id}
-              className="bg-secondary border flex flex-row rounded-2xl p-4 gap-x-4"
+              key={index + "-crs-" + group.id}
+              className="bg-secondary border flex flex-row p-4 gap-x-4"
             >
-              <img src={cource.imageUrl} className="size-24 rounded-xl" />
+              <img src={group.imageUrl} className="size-24 rounded-sm" />
               <div className="flex flex-col">
-                <h1 className="text-2xl">{cource.name}</h1>
-                <p>{cource.description}</p>
+                <h1 className="text-2xl">{group.name}</h1>
+                <p>{group.description}</p>
               </div>
             </div>
           ))}

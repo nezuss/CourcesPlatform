@@ -45,7 +45,7 @@ export function Footer(): React.ReactNode {
   ];
 
   return (
-    <footer className="w-full bg-secondary py-8 px-16 space-y-8 mt-8">
+    <footer className="w-full bg-secondary border-t py-8 px-16 space-y-8 mt-8">
       <div className="flex flex-col md:flex-row justify-between gap-8">
         <div>
           <h2 className="text-2xl">

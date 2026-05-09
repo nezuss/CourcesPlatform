@@ -11,7 +11,7 @@ export default function AuthLayout({
       <div className="flex flex-col items-center justify-center p-8">
         {children}
       </div>
-      <div className="bg-primary rounded-4xl p-8"></div>
+      <div className="bg-primary hidden lg:block p-8"></div>
     </div>
   );
 }

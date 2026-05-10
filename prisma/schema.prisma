@@ -20,3 +20,18 @@ model User {
 
   waitingListEntries WaitingList[]
 }
+
+model Cource {
+  id          String @id @default(uuid())
+  imageUrl    String
+  name        String
+  description String
+  studyTime   String
+  price       Float
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  teams               Team[]
+  waitingListEntries  WaitingList[]
+}

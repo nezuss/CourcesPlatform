@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // ? Components
 import { Button } from "@/components/ui/button";
@@ -16,8 +16,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+// ? Actions
+import { getSession } from "@/actions/auth";
+
+type User = {
+  id: string;
+  email?: string;
+  username?: string;
+  imageUrl?: string;
+  role?: "user" | "admin";
+};
+
 export function Navbar(): React.ReactElement {
-  const [isAuthorized, setIsAuthorized] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const list = [
     {
       name: "Home",
@@ -28,6 +40,48 @@ export function Navbar(): React.ReactElement {
       link: "/cources",
     },
   ];
+
+  useEffect(() => {
+    let isActive = true;
+
+    const checkAuth = async () => {
+      const token = localStorage.getItem("authToken");
+
+      if (!token) {
+        if (isActive) {
+          setIsAuthorized(false);
+          setUser(null);
+        }
+
+        return;
+      }
+
+      try {
+        const sessionUser = await getSession(token);
+        if (!isActive) return;
+
+        setUser(sessionUser as User);
+        setIsAuthorized(true);
+        localStorage.setItem("authUser", JSON.stringify(sessionUser));
+      } catch {
+        if (!isActive) return;
+
+        setIsAuthorized(false);
+        setUser(null);
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("authUser");
+      }
+    };
+
+    void checkAuth();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  const profileLink = user ? `/profile/${user.id}` : "";
+  const isAdmin = user?.role === "admin";
 
   return (
     <nav className="fixed w-full top-0 z-9">
@@ -51,37 +105,45 @@ export function Navbar(): React.ReactElement {
             </div>
           ) : (
             <div className="flex flex-row items-center gap-x-4">
-              <p>test@mail.com</p>
+              <p className="text-sm text-muted-foreground">{user?.email}</p>
               <DropdownMenu>
                 <DropdownMenuTrigger>
                   <Avatar>
-                    <AvatarFallback>T</AvatarFallback>
-                    <AvatarImage src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRdItruwGc0DLpI66Now8jewf1dOVtZUBeajA&s" />
+                    <AvatarFallback>
+                      {user?.username?.at(0)?.toUpperCase()}
+                    </AvatarFallback>
+                    {user?.imageUrl ? (
+                      <AvatarImage src={user.imageUrl} />
+                    ) : null}
                   </Avatar>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="mr-8">
-                  <DropdownMenuGroup>
-                    <DropdownMenuLabel>Administrative</DropdownMenuLabel>
-                    <Link href="/admin">
-                      <DropdownMenuItem>Dashboard</DropdownMenuItem>
-                    </Link>
-                    <Link href="/admin/cources">
-                      <DropdownMenuItem>Cources</DropdownMenuItem>
-                    </Link>
-                    <Link href="/admin/teams">
-                      <DropdownMenuItem>Teams</DropdownMenuItem>
-                    </Link>
-                    <Link href="/admin/users">
-                      <DropdownMenuItem>Users</DropdownMenuItem>
-                    </Link>
-                  </DropdownMenuGroup>
-                  <DropdownMenuSeparator />
+                  {isAdmin ? (
+                    <>
+                      <DropdownMenuGroup>
+                        <DropdownMenuLabel>Administrative</DropdownMenuLabel>
+                        <Link href="/admin">
+                          <DropdownMenuItem>Dashboard</DropdownMenuItem>
+                        </Link>
+                        <Link href="/admin/cources">
+                          <DropdownMenuItem>Cources</DropdownMenuItem>
+                        </Link>
+                        <Link href="/admin/teams">
+                          <DropdownMenuItem>Teams</DropdownMenuItem>
+                        </Link>
+                        <Link href="/admin/users">
+                          <DropdownMenuItem>Users</DropdownMenuItem>
+                        </Link>
+                      </DropdownMenuGroup>
+                      <DropdownMenuSeparator />
+                    </>
+                  ) : null}
                   <DropdownMenuGroup>
                     <DropdownMenuLabel>Account</DropdownMenuLabel>
-                    <Link href="/profile/uhygfsd">
+                    <Link href={profileLink}>
                       <DropdownMenuItem>Profile</DropdownMenuItem>
                     </Link>
-                    <Link href="/profile/setting">
+                    <Link href="/profile/settings">
                       <DropdownMenuItem>Setting</DropdownMenuItem>
                     </Link>
                     <Link href="/auth/logout">

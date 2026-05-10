@@ -2,7 +2,7 @@
 
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { createToken, sanitizeUser } from "@/lib/auth";
+import { createToken, requireUser, sanitizeUser } from "@/lib/auth";
 
 export type RegisterInput = {
   email: string;
@@ -45,6 +45,11 @@ export async function signUp(input: RegisterInput) {
     token,
     user: sanitizeUser(user),
   };
+}
+
+export async function getSession(token: string) {
+  const user = await requireUser(token);
+  return sanitizeUser(user);
 }
 
 export async function signIn(input: LoginInput) {

@@ -208,7 +208,7 @@ export default function Users() {
 
           return (
             <div key={user.id} className="bg-secondary border p-4 space-y-3">
-              <div className="flex flex-row items-center justify-between gap-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex flex-row items-center gap-2 min-w-0">
                   <Avatar>
                     <AvatarFallback>
@@ -226,6 +226,7 @@ export default function Users() {
                       ) : null}
                     </h2>
                     <p className="text-xs text-muted-foreground">
+                      Cteated at:{" "}
                       {new Date(user.createdAt).toLocaleDateString()}
                     </p>
                   </div>

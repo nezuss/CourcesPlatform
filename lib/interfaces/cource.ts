@@ -5,4 +5,6 @@ export interface CourceProps {
   description: string;
   studyTime: string;
   price: number;
+  createdAt?: string;
+  updatedAt?: string;
 }

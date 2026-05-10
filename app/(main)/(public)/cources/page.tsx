@@ -1,95 +1,162 @@
-import Link from "next/link";
+"use client";
 
-// ? Interfaces
-import { CourceProps } from "@/lib/interfaces/cource";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 // ? Components
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+// ? Actions
+import { getSession } from "@/actions/auth";
+import {
+  cancelEnrollToCourse,
+  listCourses,
+  enrollToCourse,
+  getEnrolledCourses,
+} from "@/actions/user/course";
+
+type Course = Awaited<ReturnType<typeof listCourses>>[number];
 
 export default function Cources() {
-  const cources: CourceProps[] = [
-    {
-      id: "1",
-      imageUrl:
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRdItruwGc0DLpI66Now8jewf1dOVtZUBeajA&s",
-      name: "Web Development Bootcamp",
-      description:
-        "Learn HTML, CSS, and JavaScript from scratch and build modern web applications.",
-      studyTime: "12 weeks",
-      price: 199,
-    },
-    {
-      id: "2",
-      imageUrl:
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRdItruwGc0DLpI66Now8jewf1dOVtZUBeajA&s",
-      name: "Python for Beginners",
-      description:
-        "Start coding with Python and discover the basics of programming and automation.",
-      studyTime: "8 weeks",
-      price: 99,
-    },
-    {
-      id: "3",
-      imageUrl:
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRdItruwGc0DLpI66Now8jewf1dOVtZUBeajA&s",
-      name: "Data Science Essentials",
-      description:
-        "Analyze data, create visualizations, and build machine learning models.",
-      studyTime: "10 weeks",
-      price: 249,
-    },
-    {
-      id: "4",
-      imageUrl:
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRdItruwGc0DLpI66Now8jewf1dOVtZUBeajA&s",
-      name: "UI/UX Design Fundamentals",
-      description:
-        "Master the principles of user interface and user experience design.",
-      studyTime: "6 weeks",
-      price: 149,
-    },
-    {
-      id: "5",
-      imageUrl:
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRdItruwGc0DLpI66Now8jewf1dOVtZUBeajA&s",
-      name: "React Developer Course",
-      description:
-        "Build interactive web apps using React, hooks, and modern state management.",
-      studyTime: "7 weeks",
-      price: 179,
-    },
-    {
-      id: "6",
-      imageUrl: "/images/mobile.jpg",
-      name: "Mobile App Development",
-      description: "Create cross-platform mobile apps with Flutter and Dart.",
-      studyTime: "9 weeks",
-      price: 229,
-    },
-    {
-      id: "7",
-      imageUrl:
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRdItruwGc0DLpI66Now8jewf1dOVtZUBeajA&s",
-      name: "Cybersecurity Basics",
-      description:
-        "Understand the fundamentals of cybersecurity and how to protect digital assets.",
-      studyTime: "5 weeks",
-      price: 129,
-    },
-  ];
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [pendingCourseId, setPendingCourseId] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<
+    "enroll" | "cancel" | null
+  >(null);
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadCourses = async () => {
+      try {
+        const token = localStorage.getItem("authToken");
+        const [coursesData, enrolledIds] = await Promise.all([
+          listCourses(),
+          token
+            ? getEnrolledCourses(token).catch(() => [])
+            : Promise.resolve<string[]>([]),
+        ]);
+
+        if (!isActive) return;
+
+        setCourses(coursesData);
+        setEnrolledCourseIds(enrolledIds);
+      } catch (err) {
+        if (!isActive) return;
+        setError(err instanceof Error ? err.message : "Failed to load courses");
+      } finally {
+        if (isActive) setIsLoading(false);
+      }
+    };
+
+    void loadCourses();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  const handleEnroll = async (courseId: string) => {
+    if (enrolledCourseIds.includes(courseId)) return;
+
+    const token = localStorage.getItem("authToken");
+
+    if (!token) {
+      setError("You should be logged in");
+      return;
+    }
+
+    try {
+      await getSession(token);
+    } catch {
+      setError("You should be logged in");
+      return;
+    }
+
+    setPendingCourseId(courseId);
+    setPendingAction("enroll");
+    setError("");
+    setSuccess("");
+
+    try {
+      await enrollToCourse(token, courseId);
+      setEnrolledCourseIds((currentValue) =>
+        currentValue.includes(courseId)
+          ? currentValue
+          : [...currentValue, courseId],
+      );
+      setSuccess("You have been enrolled to course");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to enroll");
+    } finally {
+      setPendingCourseId(null);
+      setPendingAction(null);
+    }
+  };
+
+  const handleCancelEnroll = async (courseId: string) => {
+    if (!enrolledCourseIds.includes(courseId)) return;
+
+    const token = localStorage.getItem("authToken");
+
+    if (!token) {
+      setError("You should be logged in");
+      return;
+    }
+
+    try {
+      await getSession(token);
+    } catch {
+      setError("You should be logged in");
+      return;
+    }
+
+    setPendingCourseId(courseId);
+    setPendingAction("cancel");
+    setError("");
+    setSuccess("");
+
+    try {
+      await cancelEnrollToCourse(token, courseId);
+      setEnrolledCourseIds((currentValue) =>
+        currentValue.filter((currentCourseId) => currentCourseId !== courseId),
+      );
+      setSuccess("Enrollment cancelled");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to cancel enrollment",
+      );
+    } finally {
+      setPendingCourseId(null);
+      setPendingAction(null);
+    }
+  };
+
+  if (isLoading) {
+    return <div className="p-6">Loading courses</div>;
+  }
 
   return (
-    <div className="p-6">
+    <div className="p-6 space-y-4">
+      {error ? <p className="text-red-500">{error}</p> : null}
+      {success ? <p className="text-green-600">{success}</p> : null}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {cources.map((cource, index) => (
+        {courses.map((cource) => (
           <div
-            key={"crs-l-" + index + "-" + cource.id}
+            key={"crs-l-" + cource.id}
             className="max-h-72 bg-secondary flex flex-row border p-4 gap-4"
           >
-            <img
-              src={cource.imageUrl}
-              className="size-64 bg-primary rounded-sm"
-            />
+            <Avatar className="size-64">
+              <AvatarFallback>
+                {cource.name.at(0)?.toUpperCase()}
+              </AvatarFallback>
+              <AvatarImage className="rounded-sm" src={cource.imageUrl} />
+            </Avatar>
             <div className="w-full flex flex-col justify-between gap-y-6">
               <div className="space-y-2">
                 <div className="">
@@ -107,13 +174,33 @@ export default function Cources() {
                     See details
                   </Button>
                 </Link>
-                <Button className="w-full">Sign on this cource</Button>
+                <Button
+                  className="w-full"
+                  variant={
+                    enrolledCourseIds.includes(cource.id)
+                      ? "destructive"
+                      : "default"
+                  }
+                  disabled={pendingCourseId === cource.id}
+                  onClick={() =>
+                    enrolledCourseIds.includes(cource.id)
+                      ? void handleCancelEnroll(cource.id)
+                      : void handleEnroll(cource.id)
+                  }
+                >
+                  {pendingCourseId === cource.id
+                    ? pendingAction === "cancel"
+                      ? "Cancelling..."
+                      : "Signing..."
+                    : enrolledCourseIds.includes(cource.id)
+                      ? "Cancel enrollment"
+                      : "Sign on this course"}
+                </Button>
               </div>
             </div>
           </div>
         ))}
       </div>
-      <div className=""></div>
     </div>
   );
 }

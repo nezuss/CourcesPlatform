@@ -1,0 +1,22 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../database.sqlite"
+}
+
+model User {
+  id       String @id @default(uuid())
+  imageUrl String
+  username String
+  email    String
+  password String
+  role     String @default("user")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  waitingListEntries WaitingList[]
+}

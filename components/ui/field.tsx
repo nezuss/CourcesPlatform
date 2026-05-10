@@ -6,15 +6,21 @@ export const Field = ({
   title,
   value,
   setValue,
+  type = "text",
 }: {
   title: string;
   value: string;
   setValue: (val: string) => void;
+  type?: "text" | "password" | "email";
 }) => {
   return (
     <div>
       <p className="text-xs">{title}</p>
-      <Input value={value} onChange={(e) => setValue(e.target.value)} />
+      <Input
+        type={type}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+      />
     </div>
   );
 };

@@ -17,6 +17,7 @@ import {
   enrollToCourse,
   getCourse,
   getEnrolledCourses,
+  getEnrolledCoursesTeam,
 } from "@/actions/user/course";
 
 export default function CourceDetails() {
@@ -29,6 +30,9 @@ export default function CourceDetails() {
     "enroll" | "cancel" | null
   >(null);
   const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([]);
+  const [teamEnrolledCourseIds, setTeamEnrolledCourseIds] = useState<string[]>(
+    [],
+  );
 
   useEffect(() => {
     let isActive = true;
@@ -43,10 +47,13 @@ export default function CourceDetails() {
         }
 
         const token = localStorage.getItem("authToken");
-        const [course, enrolledIds] = await Promise.all([
+        const [course, enrolledIds, teamEnrolledIds] = await Promise.all([
           getCourse(courseId),
           token
             ? getEnrolledCourses(token).catch(() => [])
+            : Promise.resolve<string[]>([]),
+          token
+            ? getEnrolledCoursesTeam(token).catch(() => [])
             : Promise.resolve<string[]>([]),
         ]);
 
@@ -58,6 +65,7 @@ export default function CourceDetails() {
 
         setCourse(course);
         setEnrolledCourseIds(enrolledIds);
+        setTeamEnrolledCourseIds(teamEnrolledIds);
       } catch (err) {
         if (!isActive) return;
         setError(err instanceof Error ? err.message : "Failed to load course");
@@ -75,7 +83,11 @@ export default function CourceDetails() {
 
   const handleEnroll = async () => {
     if (!cource?.id) return;
-    if (enrolledCourseIds.includes(cource.id)) return;
+    if (
+      enrolledCourseIds.includes(cource.id) ||
+      teamEnrolledCourseIds.includes(cource.id)
+    )
+      return;
 
     const token = localStorage.getItem("authToken");
     if (!token) {
@@ -111,6 +123,7 @@ export default function CourceDetails() {
 
   const handleCancelEnroll = async () => {
     if (!cource?.id) return;
+    if (teamEnrolledCourseIds.includes(cource.id)) return;
     if (!enrolledCourseIds.includes(cource.id)) return;
 
     const token = localStorage.getItem("authToken");
@@ -153,6 +166,10 @@ export default function CourceDetails() {
     return <div className="p-6">{error || "Course not found"}</div>;
   }
 
+  const isTeamEnrolled = teamEnrolledCourseIds.includes(cource.id);
+  const isWaitingListEnrolled = enrolledCourseIds.includes(cource.id);
+  const isEnrolled = isTeamEnrolled || isWaitingListEnrolled;
+
   return (
     <div className="p-6 space-y-6">
       {error ? <p className="text-red-500">{error}</p> : null}
@@ -181,24 +198,28 @@ export default function CourceDetails() {
           <Button
             className="w-full max-w-86"
             variant={
-              cource?.id && enrolledCourseIds.includes(cource.id)
-                ? "destructive"
-                : "default"
+              isTeamEnrolled
+                ? "outline"
+                : isWaitingListEnrolled
+                  ? "destructive"
+                  : "default"
             }
-            disabled={pendingAction !== null}
+            disabled={pendingAction !== null || isTeamEnrolled}
             onClick={() =>
-              cource?.id && enrolledCourseIds.includes(cource.id)
+              isWaitingListEnrolled
                 ? void handleCancelEnroll()
                 : void handleEnroll()
             }
           >
-            {pendingAction === "cancel"
-              ? "Cancelling..."
-              : pendingAction === "enroll"
-                ? "Signing..."
-                : cource?.id && enrolledCourseIds.includes(cource.id)
-                  ? "Cancel enrollment"
-                  : "Sign on this cource"}
+            {isTeamEnrolled
+              ? "Enrolled"
+              : pendingAction === "cancel"
+                ? "Cancelling..."
+                : pendingAction === "enroll"
+                  ? "Signing..."
+                  : isEnrolled
+                    ? "Cancel enrollment"
+                    : "Sign on this cource"}
           </Button>
         </div>
       </div>

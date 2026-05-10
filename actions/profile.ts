@@ -40,3 +40,57 @@ export async function updateProfile(token: string, input: UpdateProfileInput) {
 
   return sanitizeUser(updated);
 }
+
+export async function getWaitingList(userId: string) {
+  return prisma.waitingList.findMany({
+    where: { userId },
+    select: {
+      id: true,
+      courceId: true,
+      cource: {
+        select: {
+          id: true,
+          imageUrl: true,
+          name: true,
+          description: true,
+          price: true,
+        },
+      },
+    },
+  });
+}
+
+export async function getTeams(userId: string) {
+  try {
+    const teamEntries = await prisma.team.findMany({
+      select: {
+        id: true,
+        courceId: true,
+        name: true,
+        assignedUsersIds: true,
+        cource: {
+          select: {
+            id: true,
+            imageUrl: true,
+            name: true,
+            description: true,
+            price: true,
+          },
+        },
+      },
+    });
+
+    const teams = teamEntries.filter((entry) => {
+      if (!Array.isArray(entry.assignedUsersIds)) return false;
+
+      return entry.assignedUsersIds.some(
+        (assignedUserId) =>
+          typeof assignedUserId === "string" && assignedUserId === userId,
+      );
+    });
+
+    return teams;
+  } catch {
+    return [];
+  }
+}

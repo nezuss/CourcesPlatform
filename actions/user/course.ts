@@ -30,6 +30,34 @@ export async function getEnrolledCourses(token: string) {
   return Array.from(waitingListCourseIds);
 }
 
+export async function getEnrolledCoursesTeam(token: string) {
+  const { id: userId } = await requireUser(token);
+
+  try {
+    const teamEntries = await prisma.team.findMany({
+      select: {
+        courceId: true,
+        assignedUsersIds: true,
+      },
+    });
+
+    const teamCourseIds = teamEntries
+      .filter((entry) => {
+        if (!Array.isArray(entry.assignedUsersIds)) return false;
+
+        return entry.assignedUsersIds.some(
+          (assignedUserId) =>
+            typeof assignedUserId === "string" && assignedUserId === userId,
+        );
+      })
+      .map((entry) => entry.courceId);
+
+    return Array.from(new Set(teamCourseIds));
+  } catch {
+    return [];
+  }
+}
+
 export async function enrollToCourse(token: string, courceId: string) {
   const user = await requireUser(token);
   const cource = await prisma.cource.findUnique({ where: { id: courceId } });
@@ -58,6 +86,4 @@ export async function cancelEnrollToCourse(token: string, courseId: string) {
 
   if (result.count === 0)
     throw new Error("You are not enrolled to this course");
-
-  return { success: true };
 }

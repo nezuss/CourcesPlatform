@@ -14,6 +14,7 @@ import {
   listCourses,
   enrollToCourse,
   getEnrolledCourses,
+  getEnrolledCoursesTeam,
 } from "@/actions/user/course";
 
 type Course = Awaited<ReturnType<typeof listCourses>>[number];
@@ -28,6 +29,9 @@ export default function Cources() {
     "enroll" | "cancel" | null
   >(null);
   const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([]);
+  const [teamEnrolledCourseIds, setTeamEnrolledCourseIds] = useState<string[]>(
+    [],
+  );
 
   useEffect(() => {
     let isActive = true;
@@ -35,10 +39,13 @@ export default function Cources() {
     const loadCourses = async () => {
       try {
         const token = localStorage.getItem("authToken");
-        const [coursesData, enrolledIds] = await Promise.all([
+        const [coursesData, enrolledIds, teamEnrolledIds] = await Promise.all([
           listCourses(),
           token
             ? getEnrolledCourses(token).catch(() => [])
+            : Promise.resolve<string[]>([]),
+          token
+            ? getEnrolledCoursesTeam(token).catch(() => [])
             : Promise.resolve<string[]>([]),
         ]);
 
@@ -46,6 +53,7 @@ export default function Cources() {
 
         setCourses(coursesData);
         setEnrolledCourseIds(enrolledIds);
+        setTeamEnrolledCourseIds(teamEnrolledIds);
       } catch (err) {
         if (!isActive) return;
         setError(err instanceof Error ? err.message : "Failed to load courses");
@@ -62,7 +70,11 @@ export default function Cources() {
   }, []);
 
   const handleEnroll = async (courseId: string) => {
-    if (enrolledCourseIds.includes(courseId)) return;
+    if (
+      enrolledCourseIds.includes(courseId) ||
+      teamEnrolledCourseIds.includes(courseId)
+    )
+      return;
 
     const token = localStorage.getItem("authToken");
 
@@ -100,6 +112,7 @@ export default function Cources() {
   };
 
   const handleCancelEnroll = async (courseId: string) => {
+    if (teamEnrolledCourseIds.includes(courseId)) return;
     if (!enrolledCourseIds.includes(courseId)) return;
 
     const token = localStorage.getItem("authToken");
@@ -146,60 +159,70 @@ export default function Cources() {
       {error ? <p className="text-red-500">{error}</p> : null}
       {success ? <p className="text-green-600">{success}</p> : null}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {courses.map((cource) => (
-          <div
-            key={"crs-l-" + cource.id}
-            className="max-h-72 bg-secondary flex flex-row border p-4 gap-4"
-          >
-            <Avatar className="size-64">
-              <AvatarFallback>
-                {cource.name.at(0)?.toUpperCase()}
-              </AvatarFallback>
-              <AvatarImage className="rounded-sm" src={cource.imageUrl} />
-            </Avatar>
-            <div className="w-full flex flex-col justify-between gap-y-6">
-              <div className="space-y-2">
-                <div className="">
-                  <h2 className="text-4xl">{cource.name}</h2>
-                  <p className="text-xl">{cource.description}</p>
+        {courses.map((cource) => {
+          const isTeamEnrolled = teamEnrolledCourseIds.includes(cource.id);
+          const isWaitingListEnrolled = enrolledCourseIds.includes(cource.id);
+          const isEnrolled = isTeamEnrolled || isWaitingListEnrolled;
+
+          return (
+            <div
+              key={"crs-l-" + cource.id}
+              className="max-h-72 bg-secondary flex flex-row border p-4 gap-4"
+            >
+              <Avatar className="size-64">
+                <AvatarFallback>
+                  {cource.name.at(0)?.toUpperCase()}
+                </AvatarFallback>
+                <AvatarImage className="rounded-sm" src={cource.imageUrl} />
+              </Avatar>
+              <div className="w-full flex flex-col justify-between gap-y-6">
+                <div className="space-y-2">
+                  <div className="">
+                    <h2 className="text-4xl">{cource.name}</h2>
+                    <p className="text-xl">{cource.description}</p>
+                  </div>
+                  <div className="border-l-4 pl-4">
+                    <p>Study time: {cource.studyTime}</p>
+                    <p>Price: {cource.price} Euro</p>
+                  </div>
                 </div>
-                <div className="border-l-4 pl-4">
-                  <p>Study time: {cource.studyTime}</p>
-                  <p>Price: {cource.price} Euro</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <Link href={`/course/${cource.id}`}>
-                  <Button variant="outline" className="w-full">
-                    See details
+                <div className="grid grid-cols-2 gap-4">
+                  <Link href={`/course/${cource.id}`}>
+                    <Button variant="outline" className="w-full">
+                      See details
+                    </Button>
+                  </Link>
+                  <Button
+                    className="w-full"
+                    variant={
+                      isTeamEnrolled
+                        ? "outline"
+                        : isWaitingListEnrolled
+                          ? "destructive"
+                          : "default"
+                    }
+                    disabled={pendingCourseId === cource.id || isTeamEnrolled}
+                    onClick={() =>
+                      isWaitingListEnrolled
+                        ? void handleCancelEnroll(cource.id)
+                        : void handleEnroll(cource.id)
+                    }
+                  >
+                    {isTeamEnrolled
+                      ? "Enrolled"
+                      : pendingCourseId === cource.id
+                        ? pendingAction === "cancel"
+                          ? "Cancelling..."
+                          : "Signing..."
+                        : isEnrolled
+                          ? "Cancel enrollment"
+                          : "Sign on this course"}
                   </Button>
-                </Link>
-                <Button
-                  className="w-full"
-                  variant={
-                    enrolledCourseIds.includes(cource.id)
-                      ? "destructive"
-                      : "default"
-                  }
-                  disabled={pendingCourseId === cource.id}
-                  onClick={() =>
-                    enrolledCourseIds.includes(cource.id)
-                      ? void handleCancelEnroll(cource.id)
-                      : void handleEnroll(cource.id)
-                  }
-                >
-                  {pendingCourseId === cource.id
-                    ? pendingAction === "cancel"
-                      ? "Cancelling..."
-                      : "Signing..."
-                    : enrolledCourseIds.includes(cource.id)
-                      ? "Cancel enrollment"
-                      : "Sign on this course"}
-                </Button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

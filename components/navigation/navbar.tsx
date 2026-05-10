@@ -73,10 +73,42 @@ export function Navbar(): React.ReactElement {
       }
     };
 
+    const handleAuthUpdated = (event: Event) => {
+      if (event instanceof CustomEvent && event.detail) {
+        setUser(event.detail as User);
+        setIsAuthorized(true);
+      } else {
+        const rawUser = localStorage.getItem("authUser");
+
+        if (rawUser) {
+          try {
+            setUser(JSON.parse(rawUser) as User);
+            setIsAuthorized(true);
+          } catch {
+            setUser(null);
+            setIsAuthorized(false);
+          }
+        }
+      }
+
+      void checkAuth();
+    };
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === "authToken" || event.key === "authUser") {
+        void checkAuth();
+      }
+    };
+
     void checkAuth();
+
+    window.addEventListener("auth:updated", handleAuthUpdated);
+    window.addEventListener("storage", handleStorage);
 
     return () => {
       isActive = false;
+      window.removeEventListener("auth:updated", handleAuthUpdated);
+      window.removeEventListener("storage", handleStorage);
     };
   }, []);
 

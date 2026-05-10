@@ -1,3 +1,8 @@
+import { notFound } from "next/navigation";
+
+// ? Actions
+import { getProfile } from "@/actions/profile";
+
 // ? Components
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -10,7 +15,21 @@ interface CourceProps {
   price: number;
 }
 
-export default function Profile() {
+export default async function Profile({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  let user;
+
+  try {
+    user = await getProfile(id);
+  } catch {
+    notFound();
+  }
+  if (!user) notFound();
+
   const groups: CourceProps[] = [
     {
       id: "def456",
@@ -73,17 +92,16 @@ export default function Profile() {
       <div className="h-52 bg-secondary border p-4">
         <div className="flex flex-row items-center gap-x-4">
           <Avatar className="size-44">
-            <AvatarFallback>T</AvatarFallback>
-            <AvatarImage
-              className="rounded-sm"
-              src={
-                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRdItruwGc0DLpI66Now8jewf1dOVtZUBeajA&s"
-              }
-            />
+            <AvatarFallback>
+              {user?.username?.at(0)?.toUpperCase() || "U"}
+            </AvatarFallback>
+            {user.imageUrl ? (
+              <AvatarImage className="rounded-sm" src={user.imageUrl} />
+            ) : null}
           </Avatar>
           <div>
-            <h1 className="text-3xl">USERNAME</h1>
-            <p className="text-sm">USERNAME@mail.com</p>
+            <h1 className="text-3xl">{user.username || "User"}</h1>
+            <p className="text-sm">{user.email}</p>
           </div>
         </div>
       </div>
